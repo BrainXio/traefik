@@ -7,7 +7,7 @@ rules:
   indentation:
     spaces: 2
   key-ordering:
-    enable: true  # Enforce alphabetized keys, per project instructions
+    check: true  # Enforce alphabetized keys, per project instructions
   line-length:
     max: 80
   empty-lines:
