@@ -1,0 +1,9 @@
+# Configuration for yamllint
+extends: default
+
+rules:
+  document-start: disable
+  line-length: disable
+  indentation:
+    spaces: 2
+  key-ordering: enable
