@@ -1,9 +1,14 @@
-# Configuration for yamllint
+---
 extends: default
 
 rules:
-  document-start: disable
-  line-length: disable
+  document-start:
+    present: true
   indentation:
     spaces: 2
-  key-ordering: enable
+  key-ordering:
+    enable: true  # Enforce alphabetized keys, per project instructions
+  line-length:
+    max: 80
+  empty-lines:
+    max: 1
