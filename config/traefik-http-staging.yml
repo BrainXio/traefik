@@ -1,0 +1,27 @@
+# Traefik static configuration for staging environment
+api:
+  dashboard: true
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: traefik-net
+  file:
+    filename: /etc/traefik/config.yml
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      storage: /letsencrypt/acme-staging.json
+      httpChallenge:
+        entryPoint: web
+
+log:
+  level: INFO
