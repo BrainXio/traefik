@@ -53,8 +53,12 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
    ```
    **Note**: Ensure the token has "Zone: DNS: Edit" permissions in Cloudflare and keep it secure (ignored by `.gitignore`).
 
-5. **Clear Existing Certificates (if needed)**
-   If switching between configurations or encountering certificate issues, remove the existing certificate files:
+5. **Migrate Existing Certificates (if needed)**
+   If switching to Docker volumes for certificates and you have existing files in `./letsencrypt`, copy them to the volume:
+   ```bash
+   docker run --rm -v traefik_certs:/letsencrypt -v $(pwd)/letsencrypt:/source busybox cp /source/*.json /letsencrypt
+   ```
+   If starting fresh or encountering issues, remove the local files:
    ```bash
    rm -f letsencrypt/acme-staging.json letsencrypt/acme-prod.json
    ```
@@ -63,6 +67,14 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
    Run the following command to start Traefik with the DNS configuration:
    ```bash
    docker compose -f docker-compose.extend.cloudflare-dns.yml up -d
+   ```
+   To use Docker volumes for certificates and logs (instead of local disk):
+   ```bash
+   docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.volumes.yml up -d
+   ```
+   For HTTP challenge (base setup):
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.extend.volumes.yml up -d
    ```
 
 7. **Access the Dashboard**
@@ -91,6 +103,15 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
     ```bash
     rm -f letsencrypt/acme-staging.json letsencrypt/acme-prod.json
     docker compose -f docker-compose.extend.cloudflare-dns.yml up -d
+    ```
+  - With volumes, inspect the volume:
+    ```bash
+    docker volume inspect traefik_certs
+    ```
+- **Log access with volumes?**
+  - View logs from the volume:
+    ```bash
+    docker run --rm -v traefik_logs:/logs busybox cat /logs/traefik.log
     ```
 - **Need help?** Open an issue on GitHub or check the [Traefik Documentation](https://doc.traefik.io/traefik/).
 

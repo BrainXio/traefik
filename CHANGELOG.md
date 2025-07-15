@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Added `docker-compose.extend.cloudflare-dns.yml` for Cloudflare DNS-01 challenge with wildcard SAN support.
+- Added `docker-compose.extend.volumes.yml` to use Docker volumes (`traefik_certs`, `traefik_logs`) for certificates and logs instead of local disk, with file-based logging.
+- Wildcard SAN support for DNS-01 challenge certificates in `docker-compose.extend.cloudflare-dns.yml`.
 - Renamed configuration files to `traefik-cloudflare-dns-staging.yml` and `traefik-cloudflare-dns-prod.yml` for clarity.
 - Updated environment variable defaults to generic `example.com` and `user@example.com` in `.env.example`.
 

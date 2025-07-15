@@ -1,0 +1,14 @@
+---
+networks:
+  traefik-net:
+    name: traefik-net
+services:
+  traefik:
+    command:
+      - "--log.filePath=/var/log/traefik/traefik.log"
+    volumes:
+      - traefik_certs:/letsencrypt
+      - traefik_logs:/var/log/traefik
+volumes:
+  traefik_certs:
+  traefik_logs:
