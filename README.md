@@ -58,62 +58,77 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
    ```bash
    docker run --rm -v traefik_certs:/letsencrypt -v $(pwd)/letsencrypt:/source busybox cp /source/*.json /letsencrypt
    ```
-   If starting fresh or encountering issues, remove the local files:
+   If starting fresh or encountering issues, remove the local files or volume:
    ```bash
    rm -f letsencrypt/acme-staging.json letsencrypt/acme-prod.json
+   docker volume rm traefik_certs
    ```
 
 6. **Start Traefik**
-   Run the following command to start Traefik with the DNS configuration:
+   Run Traefik with the DNS configuration:
    ```bash
    docker compose -f docker-compose.extend.cloudflare-dns.yml up -d
    ```
-   To use Docker volumes for certificates and logs (instead of local disk):
+   To use Docker volumes for certificates and logs:
    ```bash
    docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.volumes.yml up -d
    ```
-   For HTTP challenge (base setup):
+   For HTTP challenge:
    ```bash
    docker compose -f docker-compose.yml -f docker-compose.extend.volumes.yml up -d
    ```
-
-7. **Access the Dashboard**
-   For staging (`TRAEFIK_CONFIG=cloudflare-dns-staging` or default), open your browser and go to `https://<TRAEFIK_DOMAIN>` (e.g., `https://example.com`). Enter the username (`admin`) and password from `secrets/traefik_dashboard_users.txt`. For local testing, add to `/etc/hosts`:
+   To enable healthchecks:
    ```bash
-   127.0.0.1 example.com
+   docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.volumes.yml -f docker-compose.extend.healthcheck.yml up -d
    ```
-   **Note**: The staging endpoint may issue untrusted certificates, so you may see a browser warning. In production (`TRAEFIK_CONFIG=cloudflare-dns-prod`), the dashboard is disabled for security.
+
+7. **Verify the Dashboard and Healthcheck**
+   For staging (`TRAEFIK_CONFIG=cloudflare-dns-staging`), visit `https://<TRAEFIK_DOMAIN>` (e.g., `https://example.com`) with `admin` and the password from `secrets/traefik_dashboard_users.txt`. For local testing:
+   ```bash
+   echo "127.0.0.1 example.com" >> /etc/hosts
+   ```
+   Check health:
+   ```bash
+   docker inspect --format '{{.State.Health.Status}}' traefik
+   ```
+   Expect `healthy` if Traefik is running correctly. In production (`TRAEFIK_CONFIG=cloudflare-dns-prod`), the dashboard is disabled.
 
 ### Next Steps
-- Check out `docs/using-traefik.md` for tips on routing services (like an Nginx web server) and debugging.
-- Add more services by creating additional Docker Compose files (e.g., next steps include metrics and logging).
-- For production with DNS, update `TRAEFIK_DOMAIN` to a public domain and set `TRAEFIK_CONFIG=cloudflare-dns-prod`.
+- Check `docs/using-traefik.md` for routing and debugging tips.
+- Add features like metrics with `docker-compose.extend.metrics.yml`.
+- For production with DNS, set `TRAEFIK_DOMAIN` to a public domain and `TRAEFIK_CONFIG=cloudflare-dns-prod`.
 
 ## Troubleshooting
 - **Dashboard not loading in staging?**
-  - Ensure `TRAEFIK_DOMAIN` is set correctly in `.env` or defaults to `example.com` and resolves to your server (e.g., add `127.0.0.1 example.com` to `/etc/hosts`).
-  - Verify basic auth credentials in `secrets/traefik_dashboard_users.txt`. Regenerate if needed:
+  - Check `TRAEFIK_DOMAIN` in `.env` or `/etc/hosts`.
+  - Regenerate credentials:
     ```bash
     echo "admin:$(openssl passwd -apr1 yourpassword)" > secrets/traefik_dashboard_users.txt
     ```
-- **Dashboard inaccessible in production?** This is expected, as the dashboard is disabled (`TRAEFIK_CONFIG=cloudflare-dns-prod`).
+  - Verify ports: `sudo netstat -tuln | grep ':80\|:443'`.
+- **Healthcheck failing?**
+  - Check logs:
+    ```bash
+    docker run --rm -v traefik_logs:/logs busybox cat /logs/traefik.log
+    ```
+  - Test healthcheck:
+    ```bash
+    docker exec traefik traefik healthcheck
+    ```
+  - Ensure ping is enabled in the config.
 - **Certificate issues?**
-  - If you see validation errors, ensure the domain is publicly resolvable and DNS records are correct in Cloudflare.
-  - If Traefik fails DNS validation, remove certificate files and restart:
+  - Ensure domain resolves (DNS-01).
+  - Clear certificates:
     ```bash
     rm -f letsencrypt/acme-staging.json letsencrypt/acme-prod.json
     docker compose -f docker-compose.extend.cloudflare-dns.yml up -d
     ```
-  - With volumes, inspect the volume:
+  - With volumes:
     ```bash
-    docker volume inspect traefik_certs
+    docker volume rm traefik_certs
+    docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.volumes.yml up -d
     ```
-- **Log access with volumes?**
-  - View logs from the volume:
-    ```bash
-    docker run --rm -v traefik_logs:/logs busybox cat /logs/traefik.log
-    ```
-- **Need help?** Open an issue on GitHub or check the [Traefik Documentation](https://doc.traefik.io/traefik/).
+- **Need help?** Open a GitHub issue or check [Traefik Documentation](https://doc.traefik.io/traefik/).
 
 ## License
 This project is licensed under the MIT License. See `LICENSE` for details.
