@@ -5,7 +5,7 @@ This guide walks you through setting up and using the Traefik reverse proxy in t
 ## What You’ll Learn
 - Configure Traefik for secure HTTPS routing.
 - Route traffic to services and debug issues.
-- Use Docker volumes and healthchecks.
+- Use Docker volumes, healthchecks, and metrics.
 
 ## Step-by-Step Setup
 
@@ -21,12 +21,12 @@ This guide walks you through setting up and using the Traefik reverse proxy in t
    cp .env.example .env
    ```
    Edit `.env` to set:
-   - `TRAEFIK_DOMAIN`: Dashboard domain (e.g., `example.com` or `yourdomain.com`).
+   - `TRAEFIK_DOMAIN`: Dashboard and metrics domain (e.g., `example.com` or `yourdomain.com`).
    - `DOCKER_SOCK`: Docker socket path (default: `/var/run/docker.sock`; for rootless, use `/var/run/user/<UID>/docker.sock`).
    - `TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL`: Email for Let’s Encrypt (default: `user@example.com`).
-   - `TRAEFIK_CONFIG`: Config file (default: `cloudflare-dns-staging`; set to `cloudflare-dns-prod` for production).
+   - `TRAEFIK_CONFIG`: Config file (default: `cloudflare-dns-staging`; set to `cloudflare-dns-prod`, `http-staging`, or `http-prod`; append `-prometheus` for metrics, e.g., `cloudflare-dns-staging-prometheus`).
 
-3. **Set Up Basic Auth for Staging Dashboard**
+3. **Set Up Basic Auth for Staging Dashboard and Metrics**
    Create credentials:
    ```bash
    mkdir secrets
@@ -36,7 +36,7 @@ This guide walks you through setting up and using the Traefik reverse proxy in t
    ```bash
    cat secrets/traefik_dashboard_users.txt
    ```
-   **Note**: In production (`TRAEFIK_CONFIG=cloudflare-dns-prod`), the dashboard is disabled.
+   **Note**: In production (`TRAEFIK_CONFIG=cloudflare-dns-prod`), the dashboard is disabled, but metrics require basic auth.
 
 4. **Set Up Cloudflare API Token for DNS**
    Create:
@@ -73,9 +73,13 @@ This guide walks you through setting up and using the Traefik reverse proxy in t
    ```bash
    docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.volumes.yml -f docker-compose.extend.healthcheck.yml up -d
    ```
+   With metrics (set `TRAEFIK_CONFIG` to include `-prometheus`):
+   ```bash
+   docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.volumes.yml -f docker-compose.extend.healthcheck.yml -f docker-compose.extend.metrics.yml up -d
+   ```
 
-7. **Verify the Dashboard and Healthcheck**
-   For staging (`TRAEFIK_CONFIG=cloudflare-dns-staging`), visit `https://<TRAEFIK_DOMAIN>` with `admin` and password from `secrets/traefik_dashboard_users.txt`. For local testing:
+7. **Verify the Dashboard, Healthcheck, and Metrics**
+   For staging (`TRAEFIK_CONFIG=cloudflare-dns-staging` or `cloudflare-dns-staging-prometheus`), visit `https://<TRAEFIK_DOMAIN>` with `admin` and password from `secrets/traefik_dashboard_users.txt`. For local testing:
    ```bash
    echo "127.0.0.1 example.com" >> /etc/hosts
    ```
@@ -83,9 +87,9 @@ This guide walks you through setting up and using the Traefik reverse proxy in t
    ```bash
    docker inspect --format '{{.State.Health.Status}}' traefik
    ```
-   Test healthcheck:
+   Access metrics:
    ```bash
-   docker exec traefik traefik healthcheck
+   curl -u admin:yourpassword http://<TRAEFIK_DOMAIN>:8080/metrics
    ```
    **Note**: Staging may show certificate warnings; production disables the dashboard.
 
@@ -136,7 +140,12 @@ This guide walks you through setting up and using the Traefik reverse proxy in t
     ```bash
     docker exec traefik traefik healthcheck
     ```
-  - Ensure ping is enabled in the config.
+- **Metrics not accessible?**
+  - Ensure `--metrics.prometheus=true` and `TRAEFIK_CONFIG` includes `-prometheus` (e.g., `http-staging-prometheus`).
+  - Test endpoint:
+    ```bash
+    curl -u admin:yourpassword http://<TRAEFIK_DOMAIN>:8080/metrics
+    ```
 - **Certificate issues?**
   - Ensure domain resolves (DNS-01).
   - Clear certificates:
@@ -162,7 +171,7 @@ This guide walks you through setting up and using the Traefik reverse proxy in t
 ## Adding Features
 - Use `docker-compose.extend.volumes.yml` for volumes.
 - Use `docker-compose.extend.healthcheck.yml` for healthchecks.
-- Next: Metrics with `docker-compose.extend.metrics.yml`.
+- Use `docker-compose.extend.metrics.yml` for Prometheus metrics (with `-prometheus` configs).
 
 ## Need Help?
 - See [Traefik Documentation](https://doc.traefik.io/traefik/).

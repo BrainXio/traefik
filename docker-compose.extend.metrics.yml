@@ -1,0 +1,15 @@
+---
+networks:
+  traefik-net:
+    name: traefik-net
+services:
+  traefik:
+    command:
+      - "--metrics.prometheus=true"
+    labels:
+      - "traefik.http.routers.metrics.rule=Host(`${TRAEFIK_DOMAIN:-example.com}`) && Path(`/metrics`)"
+      - "traefik.http.routers.metrics.service=prometheus@internal"
+      - "traefik.http.routers.metrics.entrypoints=traefik"
+      - "traefik.http.routers.metrics.middlewares=basic-auth@file"
+    volumes:
+      - "./config/traefik-${TRAEFIK_CONFIG:-http-staging}-prometheus.yml:/etc/traefik/traefik.yml:ro"
