@@ -5,11 +5,10 @@ networks:
 services:
   traefik:
     command:
-      - "--api=true"
-      - "--ping=true"
+      - --ping=true
     healthcheck:
-      test: ["CMD", "traefik", "healthcheck"]
       interval: 10s
-      timeout: 3s
       retries: 3
       start_period: 30s
+      test: ["CMD", "traefik", "healthcheck"]
+      timeout: 3s
