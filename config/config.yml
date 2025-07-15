@@ -1,4 +1,4 @@
-# Traefik dynamic configuration
+---
 http:
   middlewares:
     basic-auth:
@@ -6,5 +6,5 @@ http:
         usersFile: /run/secrets/traefik_dashboard_users
     redirect-to-https:
       redirectScheme:
-        scheme: https
         permanent: true
+        scheme: https
