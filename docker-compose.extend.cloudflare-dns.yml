@@ -1,0 +1,50 @@
+---
+networks:
+  traefik-net:
+    name: traefik-net
+secrets:
+  cloudflare_api_token:
+    file: ./secrets/cloudflare_api_token.txt
+  traefik_dashboard_users:
+    file: ./secrets/traefik_dashboard_users.txt
+services:
+  traefik:
+    command:
+      - "--api.dashboard=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=traefik-net"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.propagation.delaybeforechecks=60"
+    container_name: traefik
+    environment:
+      - "TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL=${TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL:-user@example.com}"
+      - "CF_DNS_API_TOKEN_FILE=/run/secrets/cloudflare_api_token"
+      - "TRAEFIK_DOMAIN=${TRAEFIK_DOMAIN:-example.com}"
+    image: traefik:latest
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN:-example.com}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.tls.domains[0].main=${TRAEFIK_DOMAIN:-example.com}"
+      - "traefik.http.routers.dashboard.tls.domains[0].sans=*.${TRAEFIK_DOMAIN:-example.com}"
+      - "traefik.http.routers.dashboard.middlewares=basic-auth@file"
+    networks:
+      - traefik-net
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+    secrets:
+      - cloudflare_api_token
+      - traefik_dashboard_users
+    volumes:
+      - "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+      - "./config/traefik-cloudflare-dns-staging.yml:/etc/traefik/traefik.yml:ro"
+      - "./config/config.yml:/etc/traefik/config.yml:ro"
