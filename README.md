@@ -29,12 +29,12 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
    cp .env.example .env
    ```
    Edit `.env` to set (defaults are used if not specified):
-   - `TRAEFIK_DOMAIN`: The domain for the Traefik dashboard (default: `example.com` for testing or set to `yourdomain.com` for production). Supports wildcard subdomains (e.g., `*.yourdomain.com`) for DNS-01 certificates.
+   - `TRAEFIK_DOMAIN`: The domain for the Traefik dashboard and metrics (default: `example.com` for testing or set to `yourdomain.com` for production). Supports wildcard subdomains (e.g., `*.yourdomain.com`) for DNS-01 certificates.
    - `DOCKER_SOCK`: The Docker socket path (default: `/var/run/docker.sock`; for rootless Docker, use `/var/run/user/<UID>/docker.sock`, e.g., `/var/run/user/1000/docker.sock`).
    - `TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL`: A valid, deliverable email for Let’s Encrypt (default: `user@example.com`).
-   - `TRAEFIK_CONFIG`: The Traefik configuration file (default: `cloudflare-dns-staging` for staging; set to `cloudflare-dns-prod` for production).
+   - `TRAEFIK_CONFIG`: The Traefik configuration file (default: `cloudflare-dns-staging` for staging; set to `cloudflare-dns-prod`, `http-staging`, or `http-prod`; append `-prometheus` for metrics, e.g., `cloudflare-dns-staging-prometheus`).
 
-3. **Set Up Basic Auth for Staging Dashboard**
+3. **Set Up Basic Auth for Staging Dashboard and Metrics**
    Create a `secrets/` directory and generate a username:password pair in htpasswd format:
    ```bash
    mkdir secrets
@@ -81,9 +81,13 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
    ```bash
    docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.volumes.yml -f docker-compose.extend.healthcheck.yml up -d
    ```
+   To enable metrics (set `TRAEFIK_CONFIG` to include `-prometheus`, e.g., `cloudflare-dns-staging-prometheus`):
+   ```bash
+   docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.volumes.yml -f docker-compose.extend.healthcheck.yml -f docker-compose.extend.metrics.yml up -d
+   ```
 
-7. **Verify the Dashboard and Healthcheck**
-   For staging (`TRAEFIK_CONFIG=cloudflare-dns-staging`), visit `https://<TRAEFIK_DOMAIN>` (e.g., `https://example.com`) with `admin` and the password from `secrets/traefik_dashboard_users.txt`. For local testing:
+7. **Verify the Dashboard, Healthcheck, and Metrics**
+   For staging (`TRAEFIK_CONFIG=cloudflare-dns-staging` or `cloudflare-dns-staging-prometheus`), visit `https://<TRAEFIK_DOMAIN>` (e.g., `https://example.com`) with `admin` and the password from `secrets/traefik_dashboard_users.txt`. For local testing:
    ```bash
    echo "127.0.0.1 example.com" >> /etc/hosts
    ```
@@ -91,12 +95,16 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
    ```bash
    docker inspect --format '{{.State.Health.Status}}' traefik
    ```
-   Expect `healthy` if Traefik is running correctly. In production (`TRAEFIK_CONFIG=cloudflare-dns-prod`), the dashboard is disabled.
+   Access metrics:
+   ```bash
+   curl -u admin:yourpassword http://<TRAEFIK_DOMAIN>:8080/metrics
+   ```
+   In production (`TRAEFIK_CONFIG=cloudflare-dns-prod` or `cloudflare-dns-prod-prometheus`), the dashboard is disabled, but metrics are available with basic auth.
 
 ### Next Steps
 - Check `docs/using-traefik.md` for routing and debugging tips.
-- Add features like metrics with `docker-compose.extend.metrics.yml`.
-- For production with DNS, set `TRAEFIK_DOMAIN` to a public domain and `TRAEFIK_CONFIG=cloudflare-dns-prod`.
+- See `docs/using-metrics.md` for setting up Prometheus to scrape Traefik metrics.
+- For production with DNS, set `TRAEFIK_DOMAIN` to a public domain and `TRAEFIK_CONFIG=cloudflare-dns-prod` or `cloudflare-dns-prod-prometheus`.
 
 ## Troubleshooting
 - **Dashboard not loading in staging?**
@@ -115,7 +123,12 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
     ```bash
     docker exec traefik traefik healthcheck
     ```
-  - Ensure ping is enabled in the config.
+- **Metrics not accessible?**
+  - Ensure `--metrics.prometheus=true` and `TRAEFIK_CONFIG` includes `-prometheus` (e.g., `http-staging-prometheus`).
+  - Test endpoint:
+    ```bash
+    curl -u admin:yourpassword http://<TRAEFIK_DOMAIN>:8080/metrics
+    ```
 - **Certificate issues?**
   - Ensure domain resolves (DNS-01).
   - Clear certificates:

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Added `docker-compose.extend.metrics.yml` for Prometheus metrics with basic auth protection.
+- Added `traefik-*-prometheus.yml` config files to enable metrics support.
+- Added `docs/using-metrics.md` for metrics setup and Prometheus integration.
 - Added `docker-compose.extend.healthcheck.yml` for Traefik healthcheck using `traefik healthcheck` command.
 - Enabled `ping: {}` in static configs for healthcheck support.
 - Added `docker-compose.extend.volumes.yml` to use Docker volumes (`traefik_certs`, `traefik_logs`) for certificates and logs, with file-based logging.
