@@ -11,7 +11,7 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
 ### Prerequisites
 - **Docker** and **Docker Compose** installed on your system.
 - A domain name (e.g., `yourdomain.com`) for production certificates, or use `traefik.local` for local testing with the staging endpoint.
-- A valid email address for Let’s Encrypt certificate notifications.
+- A valid email address for Let’s Encrypt certificate notifications (optional if using the default).
 - Basic familiarity with the command line.
 
 ### Setup Steps
@@ -22,15 +22,15 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
    cd traefik
    ```
 
-2. **Create the `.env` File**
-   Copy the example file and customize it:
+2. **Create the `.env` File (Optional)**
+   Copy the example file to customize settings:
    ```bash
    cp .env.example .env
    ```
-   Edit `.env` to set:
-   - `TRAEFIK_DOMAIN`: The domain for the Traefik dashboard (e.g., `traefik.local` for testing or `traefik.yourdomain.com` for production).
-   - `DOCKER_SOCK`: The Docker socket path (default: `/var/run/docker.sock`). For rootless Docker, set to `/var/run/user/<UID>/docker.sock` (e.g., `/var/run/user/1000/docker.sock`).
-   - `TRAEFIK_CERTIFICATESRESOLVERS_letsencrypt_ACME_EMAIL`: A valid, deliverable email (e.g., `user@yourdomain.com`).
+   Edit `.env` to set (defaults are used if not specified):
+   - `TRAEFIK_DOMAIN`: The domain for the Traefik dashboard (default: `traefik.local` for testing or set to `traefik.yourdomain.com` for production).
+   - `DOCKER_SOCK`: The Docker socket path (default: `/var/run/docker.sock`; for rootless Docker, use `/var/run/user/<UID>/docker.sock`, e.g., `/var/run/user/1000/docker.sock`).
+   - `TRAEFIK_CERTIFICATESRESOLVERS_letsencrypt_ACME_EMAIL`: A valid, deliverable email for Let’s Encrypt (default: `user@yourdomain.com`).
    - `TRAEFIK_CONFIG`: The Traefik configuration file (default: `http-staging` for staging). Set to `http-prod` for production.
 
 3. **Set Up Basic Auth for Staging Dashboard**
@@ -43,7 +43,7 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
    ```bash
    cat secrets/traefik_dashboard_users.txt
    ```
-   **Note**: The `secrets/` directory is ignored by `.gitignore` and not committed.
+   **Note**: The `secrets/` directory is ignored by `.gitignore` and not committed. In production (`TRAEFIK_CONFIG=http-prod`), the dashboard is disabled, so basic auth is not needed.
 
 4. **Clear Existing Certificates (if needed)**
    If switching between staging and production or encountering certificate issues, remove the existing certificate files:
@@ -58,7 +58,7 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
    ```
 
 6. **Access the Dashboard**
-   For staging (`TRAEFIK_CONFIG=http-staging`), open your browser and go to `https://<TRAEFIK_DOMAIN>` (e.g., `https://traefik.local`). Enter the username (`admin`) and password from `secrets/traefik_dashboard_users.txt`. For local testing, add to `/etc/hosts`:
+   For staging (`TRAEFIK_CONFIG=http-staging` or default), open your browser and go to `https://<TRAEFIK_DOMAIN>` (e.g., `https://traefik.local`). Enter the username (`admin`) and password from `secrets/traefik_dashboard_users.txt`. For local testing, add to `/etc/hosts`:
    ```bash
    127.0.0.1 traefik.local
    ```
@@ -71,7 +71,7 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
 
 ## Troubleshooting
 - **Dashboard not loading in staging?**
-  - Ensure `TRAEFIK_DOMAIN` is set correctly in `.env` and resolves to your server (e.g., add `127.0.0.1 traefik.local` to `/etc/hosts`).
+  - Ensure `TRAEFIK_DOMAIN` is set correctly in `.env` or defaults to `traefik.local` and resolves to your server (e.g., add `127.0.0.1 traefik.local` to `/etc/hosts`).
   - Verify basic auth credentials in `secrets/traefik_dashboard_users.txt`. Regenerate if needed:
     ```bash
     echo "admin:$(openssl passwd -apr1 yourpassword)" > secrets/traefik_dashboard_users.txt
@@ -90,7 +90,7 @@ Traefik is a modern reverse proxy that makes it simple to route web traffic to y
     echo $TRAEFIK_CONFIG
     ```
     Update `.env` if needed and restart Traefik: `docker-compose up -d`.
-- **Rootless Docker issues?** Confirm `DOCKER_SOCK` is set to the correct path (e.g., `/var/run/user/1000/docker.sock`).
+- **Rootless Docker issues?** Confirm `DOCKER_SOCK` is set to the correct path (default: `/var/run/docker.sock`) or adjust for rootless Docker.
 - **Need help?** Open an issue on GitHub or check the [Traefik Documentation](https://doc.traefik.io/traefik/).
 
 ## License
