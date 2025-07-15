@@ -1,11 +1,5 @@
+---
 # Validates YAML files and checks for formatting issues
-name: Lint YAML Files
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   lint:
@@ -23,9 +17,12 @@ jobs:
         run: pip install yamllint
 
       - name: Run yamllint
-        run: |
-          if find . -type f \( -name "*.yml" -o -name "*.yaml" \) -not -path "*.github/workflows/*" | grep -q .; then
-            yamllint -c .yamllint.yml .
-          else
-            echo "No YAML files found outside .github/workflows/, skipping linting."
-          fi
+        run: yamllint -c .yamllint.yml .
+
+name: Lint YAML Files
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
