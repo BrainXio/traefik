@@ -13,9 +13,9 @@ entryPoints:
     address: ":80"
   websecure:
     address: ":443"
-ping: {}
 log:
   level: INFO
+ping: {}
 providers:
   docker:
     exposedByDefault: false
