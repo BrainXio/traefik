@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added `docker-compose.extend.cloudflare-dns.yml` for Cloudflare DNS-01 challenge with wildcard SAN support.
+- Renamed configuration files to `traefik-cloudflare-dns-staging.yml` and `traefik-cloudflare-dns-prod.yml` for clarity.
+- Updated environment variable defaults to generic `example.com` and `user@example.com` in `.env.example`.
 
 ## [0.1.0] - 2025-07-15
 ### Added
@@ -15,6 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic auth for staging dashboard using Docker secret (`traefik_dashboard_users.txt`).
 - Dashboard disabled in production for security.
 - Static (`traefik-http-*.yml`) and dynamic (`config.yml`) configurations.
-- Environment variable defaults (e.g., `TRAEFIK_DOMAIN=traefik.local`, `TRAEFIK_CERTIFICATESRESOLVERS_letsencrypt_ACME_EMAIL=user@yourdomain.com`) for robustness without `.env`.
+- Environment variable defaults for robustness without `.env`.
 - Beginner-friendly `README.md` and `docs/using-traefik.md` for setup, Nginx routing example, and debugging.
 - `.env.example` for non-sensitive variables and `.gitignore` to exclude secrets and artifacts.
