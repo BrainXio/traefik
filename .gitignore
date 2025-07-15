@@ -1,0 +1,23 @@
+# Ignore Docker volumes and data
+letsencrypt/
+
+# Ignore secret files
+secrets/
+
+# Ignore environment files
+.env
+
+# Ignore Docker build artifacts
+*.log
+*.tar
+*.tar.gz
+
+# Ignore editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db

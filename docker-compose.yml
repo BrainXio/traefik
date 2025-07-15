@@ -1,0 +1,42 @@
+---
+networks:
+  traefik-net:
+    name: traefik-net
+secrets:
+  traefik_dashboard_users:
+    file: ./secrets/traefik_dashboard_users.txt
+services:
+  traefik:
+    command:
+      - --api.dashboard=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=traefik-net
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+    container_name: traefik
+    environment:
+      - TRAEFIK_CERTIFICATESRESOLVERS_letsencrypt_ACME_EMAIL=${TRAEFIK_CERTIFICATESRESOLVERS_letsencrypt_ACME_EMAIL:-user@yourdomain.com}
+    image: traefik:latest
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN:-traefik.local}`)
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
+      - traefik.http.routers.dashboard.middlewares=basic-auth@file
+    networks:
+      - traefik-net
+    ports:
+      - 80:80
+      - 443:443
+    restart: unless-stopped
+    secrets:
+      - traefik_dashboard_users
+    volumes:
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+      - ./config/traefik-${TRAEFIK_CONFIG:-http-staging}.yml:/etc/traefik/traefik.yml:ro
+      - ./config/config.yml:/etc/traefik/config.yml:ro

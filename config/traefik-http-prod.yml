@@ -1,0 +1,23 @@
+---
+api:
+  dashboard: false
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+      httpChallenge:
+        entryPoint: web
+      storage: /letsencrypt/acme-prod.json
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+log:
+  level: INFO
+providers:
+  docker:
+    exposedByDefault: false
+    network: traefik-net
+  file:
+    filename: /etc/traefik/config.yml

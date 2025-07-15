@@ -1,0 +1,10 @@
+---
+http:
+  middlewares:
+    basic-auth:
+      basicAuth:
+        usersFile: /run/secrets/traefik_dashboard_users
+    redirect-to-https:
+      redirectScheme:
+        permanent: true
+        scheme: https
