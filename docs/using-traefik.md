@@ -4,145 +4,142 @@ This guide walks you through setting up and using the Traefik reverse proxy in t
 
 ## What You’ll Learn
 - How to configure Traefik for secure HTTPS routing.
-- How to route traffic to services like an Nginx web server.
-- How to debug common issues.
+- How to route traffic to services (like an Nginx web server) and debugging.
+- How to use Docker volumes for certificates and logs.
 
 ## Step-by-Step Setup
 
-### 1. Clone the Repository
-Download the project to your server or local machine:
-```bash
-git clone https://github.com/brainxio/traefik.git
-cd traefik
-```
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/brainxio/traefik.git
+   cd traefik
+   ```
 
-### 2. Configure Environment Variables
-Traefik uses a `.env` file for non-sensitive settings. Copy the example file:
-```bash
-cp .env.example .env
-```
-Open `.env` in a text editor and set:
-- `TRAEFIK_DOMAIN`: The domain for the Traefik dashboard (e.g., `traefik.local` for testing or `traefik.yourdomain.com` for production).
-- `DOCKER_SOCK`: The Docker socket path (default: `/var/run/docker.sock`). For rootless Docker, set to `/var/run/user/<UID>/docker.sock` (e.g., `/var/run/user/1000/docker.sock`).
-- `TRAEFIK_CERTIFICATESRESOLVERS_letsencrypt_ACME_EMAIL`: A valid, deliverable email for Let’s Encrypt (e.g., `user@yourdomain.com`).
-- `TRAEFIK_CONFIG`: The Traefik configuration file (default: `http-staging` for staging). Set to `http-prod` for production.
+2. **Configure Environment Variables**
+   Traefik uses a `.env` file for non-sensitive settings. Copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+   Open `.env` in a text editor and set:
+   - `TRAEFIK_DOMAIN`: The domain for the Traefik dashboard (e.g., `example.com` for testing or `yourdomain.com` for production).
+   - `DOCKER_SOCK`: The Docker socket path (default: `/var/run/docker.sock`). For rootless Docker, set to `/var/run/user/<UID>/docker.sock` (e.g., `/var/run/user/1000/docker.sock`).
+   - `TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL`: A valid, deliverable email for Let’s Encrypt (default: `user@example.com`).
+   - `TRAEFIK_CONFIG`: The Traefik configuration file (default: `cloudflare-dns-staging` for staging; set to `cloudflare-dns-prod` for production).
 
-Example `.env`:
-```
-TRAEFIK_DOMAIN=traefik.local
-DOCKER_SOCK=/var/run/docker.sock
-TRAEFIK_CERTIFICATESRESOLVERS_letsencrypt_ACME_EMAIL=user@yourdomain.com
-TRAEFIK_CONFIG=http-staging
-```
+3. **Set Up Basic Auth for Staging Dashboard**
+   Create a `secrets/` directory and generate a username:password pair in htpasswd format:
+   ```bash
+   mkdir secrets
+   echo "admin:$(openssl passwd -apr1 yourpassword)" > secrets/traefik_dashboard_users.txt
+   ```
+   Replace `yourpassword` with a strong password. Verify the file:
+   ```bash
+   cat secrets/traefik_dashboard_users.txt
+   ```
+   **Note**: The `secrets/` directory is ignored by `.gitignore` and not committed. In production (`TRAEFIK_CONFIG=cloudflare-dns-prod`), the dashboard is disabled, so basic auth is not needed.
 
-### 3. Set Up Basic Auth for Staging Dashboard
-Create a `secrets/` directory and generate a username:password pair in htpasswd format:
-```bash
-mkdir secrets
-echo "admin:$(openssl passwd -apr1 yourpassword)" > secrets/traefik_dashboard_users.txt
-```
-Replace `yourpassword` with a strong password. Verify the file:
-```bash
-cat secrets/traefik_dashboard_users.txt
-```
-**Note**: The `secrets/` directory is ignored by `.gitignore` and not committed. In production (`TRAEFIK_CONFIG=http-prod`), the dashboard is disabled, so basic auth is not needed.
+4. **Set Up Cloudflare API Token for DNS**
+   Create a `secrets/cloudflare_api_token.txt` file with your Cloudflare API token:
+   ```bash
+   echo "your-cloudflare-api-token" > secrets/cloudflare_api_token.txt
+   ```
+   **Note**: Ensure the token has "Zone: DNS: Edit" permissions in Cloudflare.
 
-### 4. Clear Existing Certificates (if needed)
-If switching between staging and production or encountering certificate issues, remove the existing certificate files:
-```bash
-rm -f letsencrypt/acme-staging.json letsencrypt/acme-prod.json
-```
+5. **Migrate Existing Certificates (if needed)**
+   If switching to Docker volumes for certificates and you have existing files in `./letsencrypt`, copy them to the volume:
+   ```bash
+   docker run --rm -v traefik_certs:/letsencrypt -v $(pwd)/letsencrypt:/source busybox cp /source/*.json /letsencrypt
+   ```
+   If starting fresh or encountering issues, remove the local files:
+   ```bash
+   rm -f letsencrypt/acme-staging.json letsencrypt/acme-prod.json
+   ```
 
-### 5. Start Traefik
-Launch Traefik with Docker Compose:
-```bash
-docker-compose up -d
-```
-This starts Traefik in the background, listening on ports 80 (HTTP) and 443 (HTTPS).
+6. **Start Traefik**
+   Launch Traefik with the DNS configuration:
+   ```bash
+   docker compose -f docker-compose.extend.cloudflare-dns.yml up -d
+   ```
+   To use Docker volumes for certificates and logs (instead of local disk):
+   ```bash
+   docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.volumes.yml up -d
+   ```
+   For HTTP challenge (base setup):
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.extend.volumes.yml up -d
+   ```
 
-### 6. Verify the Dashboard
-For staging (`TRAEFIK_CONFIG=http-staging`), open your browser and go to `https://<TRAEFIK_DOMAIN>` (e.g., `https://traefik.local`). Enter the username (`admin`) and password from `secrets/traefik_dashboard_users.txt`. For local testing, add to `/etc/hosts`:
-```
-127.0.0.1 traefik.local
-```
-**Note**: The staging endpoint issues untrusted certificates, so you may see a browser warning. In production (`TRAEFIK_CONFIG=http-prod`), the dashboard is disabled for security.
+7. **Access the Dashboard**
+   For staging (`TRAEFIK_CONFIG=cloudflare-dns-staging` or default), open your browser and go to `https://<TRAEFIK_DOMAIN>` (e.g., `https://example.com`). Enter the username (`admin`) and password from `secrets/traefik_dashboard_users.txt`. For local testing, add to `/etc/hosts`:
+   ```bash
+   127.0.0.1 example.com
+   ```
+   **Note**: The staging endpoint may issue untrusted certificates, so you may see a browser warning. In production (`TRAEFIK_CONFIG=cloudflare-dns-prod`), the dashboard is disabled for security.
 
 ## Routing Services (e.g., Nginx)
-To route traffic to a service like an Nginx web server, add it to the `traefik-net` network and configure Traefik labels. Here’s an example for Nginx:
+To route traffic to a service like an Nginx web server, add it to the `traefik-net` network and configure Traefik labels. Here’s an example:
 
-1. **Add Nginx to `docker-compose.yml` or an extend file** (e.g., `docker-compose.extend.nginx.yml`):
+1. **Add Nginx to an extend file** (e.g., `docker-compose.extend.nginx.yml`):
    ```yaml
-   services:
-     nginx:
-       image: nginx:latest
-       networks:
-         - traefik-net
-       labels:
-         - "traefik.enable=true"
-         - "traefik.http.routers.nginx.rule=Host(`nginx.local`)"
-         - "traefik.http.routers.nginx.entrypoints=websecure"
-         - "traefik.http.routers.nginx.tls.certresolver=letsencrypt"
    networks:
      traefik-net:
        name: traefik-net
+   services:
+     nginx:
+       image: nginx:latest
+       labels:
+         - "traefik.enable=true"
+         - "traefik.http.routers.nginx.rule=Host(`nginx.example.com`)"
+         - "traefik.http.routers.nginx.entrypoints=websecure"
+         - "traefik.http.routers.nginx.tls.certresolver=letsencrypt"
+       networks:
+         - traefik-net
    ```
 
-2. **Update `/etc/hosts` for local testing** (if using `nginx.local`):
-   ```
-   127.0.0.1 nginx.local
+2. **Update `/etc/hosts` for local testing** (if using `nginx.example.com`):
+   ```bash
+   127.0.0.1 nginx.example.com
    ```
 
 3. **Restart Traefik and Nginx**:
    ```bash
-   docker-compose up -d
+   docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.nginx.yml up -d
    ```
 
 4. **Access Nginx**:
-   Open your browser and visit `https://nginx.local`. You should see the default Nginx welcome page. Expect a certificate warning if using the staging endpoint.
+   Open your browser and visit `https://nginx.example.com`. You should see the default Nginx welcome page. Expect a certificate warning if using the staging endpoint.
 
 ## Debugging Tips
 - **Dashboard not loading in staging?**
-  - Check `TRAEFIK_DOMAIN` in `.env` matches your domain or `/etc/hosts` entry.
+  - Ensure `TRAEFIK_DOMAIN` is set correctly in `.env` or defaults to `example.com` and resolves to your server (e.g., add `127.0.0.1 example.com` to `/etc/hosts`).
   - Verify basic auth credentials in `secrets/traefik_dashboard_users.txt`. Regenerate if needed:
     ```bash
     echo "admin:$(openssl passwd -apr1 yourpassword)" > secrets/traefik_dashboard_users.txt
     ```
   - Ensure ports 80 and 443 are open (`sudo netstat -tuln | grep ':80\|:443'`).
-- **Dashboard inaccessible in production?** This is expected, as the dashboard is disabled (`TRAEFIK_CONFIG=http-prod`).
+- **Dashboard inaccessible in production?** This is expected, as the dashboard is disabled (`TRAEFIK_CONFIG=cloudflare-dns-prod`).
 - **Certificate issues?**
-  - If you see `Cannot issue for "traefik.local": Domain name does not end with a valid public suffix`, use a public domain (e.g., `yourdomain.com`) or keep `TRAEFIK_CONFIG=http-staging` for testing.
-  - If Traefik uses the wrong endpoint, remove certificate files and restart:
+  - If you see validation errors, ensure the domain is publicly resolvable and DNS records are correct in Cloudflare.
+  - If Traefik fails DNS validation, remove certificate files and restart:
     ```bash
     rm -f letsencrypt/acme-staging.json letsencrypt/acme-prod.json
-    docker-compose up -d
+    docker compose -f docker-compose.extend.cloudflare-dns.yml up -d
     ```
-  - Verify environment variables:
+  - With volumes, inspect or remove the volume and restart:
     ```bash
-    echo $TRAEFIK_CERTIFICATESRESOLVERS_letsencrypt_ACME_EMAIL
-    echo $TRAEFIK_CONFIG
+    docker volume rm traefik_certs
+    docker compose -f docker-compose.extend.cloudflare-dns.yml -f docker-compose.extend.volumes.yml up -d
     ```
-    Update `.env` if needed and restart Traefik: `docker-compose up -d`.
-- **Rootless Docker issues?**
-  - Ensure `DOCKER_SOCK` is set to the correct path (e.g., `/var/run/user/1000/docker.sock`).
-  - Verify the Docker socket is accessible: `docker info --format '{{.HostInfo.ID}}'`.
-- **Service not routing?**
-  - Confirm the service is on the `traefik-net` network.
-  - Check Traefik labels in the service’s Docker Compose file.
-- **View logs**:
-  ```bash
-  docker logs traefik
-  ```
+- **Log access with volumes?**
+  - View logs from the volume:
+    ```bash
+    docker run --rm -v traefik_logs:/logs busybox cat /logs/traefik.log
+    ```
+- **View Traefik logs**:
+   ```bash
+   docker logs traefik
+   ```
+- **Need help?** Open an issue on GitHub or check the [Traefik Documentation](https://doc.traefik.io/traefik/).
 
-## Adding Features
-You can extend Traefik with additional Docker Compose files:
-- **Enable metrics**: Create `docker-compose.extend.metrics.yml` (see future guides in `docs/`).
-- **Change log levels**: Create `docker-compose.change.logging.yml`.
-
-Check `docs/` for more guides as features are added.
-
-## Need Help?
-- Read the [Traefik Documentation](https://doc.traefik.io/traefik/).
-- Open an issue on GitHub for bugs or questions.
-- Join the Traefik community for support.
-
-Happy routing!
+## License
+This project is licensed under the MIT License. See `LICENSE` for details.
