@@ -1,0 +1,14 @@
+---
+networks:
+  traefik-net:
+    name: traefik-net
+services:
+  traefik:
+    command:
+      - --ping=true
+    healthcheck:
+      interval: 10s
+      retries: 3
+      start_period: 30s
+      test: ["CMD", "traefik", "healthcheck"]
+      timeout: 3s

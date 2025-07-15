@@ -17,6 +17,7 @@ entryPoints:
     address: ":443"
 log:
   level: INFO
+ping: {}
 providers:
   docker:
     exposedByDefault: false
