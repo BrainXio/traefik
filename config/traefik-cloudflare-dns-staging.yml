@@ -6,9 +6,9 @@ certificatesResolvers:
     acme:
       caServer: https://acme-staging-v02.api.letsencrypt.org/directory
       dnsChallenge:
-        provider: cloudflare
         propagation:
           delaybeforechecks: 60
+        provider: cloudflare
       storage: /letsencrypt/acme-staging.json
 entryPoints:
   web:
