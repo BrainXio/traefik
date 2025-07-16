@@ -11,4 +11,6 @@ services:
       - traefik_logs:/var/log/traefik
 volumes:
   traefik_certs:
+    name: traefik-certs
   traefik_logs:
+    name: traefik-logs
