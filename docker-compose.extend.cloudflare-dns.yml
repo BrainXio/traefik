@@ -46,5 +46,5 @@ services:
     volumes:
       - "${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
-      - "./config/traefik-cloudflare-dns-staging.yml:/etc/traefik/traefik.yml:ro"
+      - ./config/traefik-${TRAEFIK_CONFIG:-http-staging}.yml:/etc/traefik/traefik.yml:ro
       - "./config/config.yml:/etc/traefik/config.yml:ro"
